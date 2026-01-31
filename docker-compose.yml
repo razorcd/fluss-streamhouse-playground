@@ -1,0 +1,99 @@
+services:
+  #begin Fluss cluster
+  coordinator-server:
+    image: apache/fluss:0.8.0-incubating
+    container_name: coordinator-server
+    volumes:
+      - ./lib:/tmp/lib
+    entrypoint:
+      [
+        "sh",
+        "-c",
+        "cp -v /tmp/lib/*.jar /opt/fluss/plugins/iceberg/ && exec /docker-entrypoint.sh coordinatorServer",
+      ]
+    depends_on:
+      - zookeeper-fluss
+    networks:
+      iceberg_net:
+    environment:
+      - |
+        FLUSS_PROPERTIES=
+        zookeeper.address: zookeeper-fluss:2181
+        bind.listeners: FLUSS://coordinator-server:9123
+        remote.data.dir: /tmp/fluss/remote-data
+  zookeeper-fluss:
+    restart: always
+    image: zookeeper:3.9.2
+    networks:
+      iceberg_net:
+
+
+  zookeeper-kafka:
+    image: 'confluentinc/cp-zookeeper:7.8.0'
+    container_name: 'zookeeper-kafka'
+    restart: 'unless-stopped'
+    ports:
+      - '2181:2181'
+    environment:
+      - 'ZOOKEEPER_CLIENT_PORT=2181'
+    healthcheck:
+      test: 'echo stat | nc localhost $$ZOOKEEPER_CLIENT_PORT'
+    networks:
+      iceberg_net:
+
+  kafka-broker:
+    image: 'confluentinc/cp-kafka:7.8.0'
+    hostname: kafka
+    container_name: kafka-broker
+  #    restart: 'unless-stopped'
+    depends_on:
+      - 'zookeeper-kafka'
+    ports:
+      - 9092:9092
+      - 29092:29092
+    environment:
+      - 'KAFKA_ZOOKEEPER_CONNECT=zookeeper-kafka:2181'
+      - 'KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      - 'KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092,PLAINTEXT_HOST://kafka-broker:29092'
+      - 'KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1'
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "9092" ]
+    networks:
+      iceberg_net:
+
+  # jobmanager:
+  #   image: fluss/quickstart-flink-iceberg:1.20-0.8.0
+  #   container_name: jobmanager
+  #   ports:
+  #     - "8083:8081"
+  #   command: jobmanager
+  #   networks:
+  #     iceberg_net:
+  #   environment:
+  #     - AWS_ACCESS_KEY_ID=admin
+  #     - AWS_SECRET_ACCESS_KEY=password
+  #     - AWS_REGION=us-east-1
+  #     - |
+  #       FLINK_PROPERTIES=
+  #       jobmanager.rpc.address: jobmanager
+  # taskmanager:
+  #   image: fluss/quickstart-flink-iceberg:1.20-0.8.0
+  #   container_name: taskmanager
+  #   depends_on:
+  #     - jobmanager
+  #   command: taskmanager
+  #   networks:
+  #     iceberg_net:
+  #   environment:
+  #     - AWS_ACCESS_KEY_ID=admin
+  #     - AWS_SECRET_ACCESS_KEY=password
+  #     - AWS_REGION=us-east-1
+  #     - |
+  #       FLINK_PROPERTIES=
+  #       jobmanager.rpc.address: jobmanager
+  #       taskmanager.numberOfTaskSlots: 10
+  #       taskmanager.memory.process.size: 2048m
+  #       taskmanager.memory.framework.off-heap.size: 256m
+
+networks:
+  iceberg_net:
