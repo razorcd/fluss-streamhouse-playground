@@ -1,15 +1,15 @@
 services:
   #begin Fluss cluster
-  coordinator-server:
+  fluss-coordinator-server:
     image: apache/fluss:0.8.0-incubating
-    container_name: coordinator-server
+    container_name: fluss-coordinator-server
     volumes:
       - ./lib:/tmp/lib
     entrypoint:
       [
         "sh",
         "-c",
-        "cp -v /tmp/lib/*.jar /opt/fluss/plugins/iceberg/ && exec /docker-entrypoint.sh coordinatorServer",
+        "exec /docker-entrypoint.sh coordinatorServer",
       ]
     depends_on:
       - zookeeper-fluss
@@ -19,9 +19,10 @@ services:
       - |
         FLUSS_PROPERTIES=
         zookeeper.address: zookeeper-fluss:2181
-        bind.listeners: FLUSS://coordinator-server:9123
+        bind.listeners: FLUSS://fluss-coordinator-server:9123
         remote.data.dir: /tmp/fluss/remote-data
   zookeeper-fluss:
+    container_name: zookeeper-fluss
     restart: always
     image: zookeeper:3.9.2
     networks:
