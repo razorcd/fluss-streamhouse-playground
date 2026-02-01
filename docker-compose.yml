@@ -5,6 +5,8 @@ services:
     container_name: fluss-coordinator-server
     volumes:
       - ./lib:/tmp/lib
+    ports:
+      - "9123:9123"
     entrypoint:
       [
         "sh",
@@ -21,6 +23,24 @@ services:
         zookeeper.address: zookeeper-fluss:2181
         bind.listeners: FLUSS://fluss-coordinator-server:9123
         remote.data.dir: /tmp/fluss/remote-data
+  fluss-tablet-server:
+    image: apache/fluss:0.8.0-incubating
+    container_name: fluss-tablet-server
+    command: tabletServer
+    ports:
+      - "9124:9123"
+    depends_on:
+      - fluss-coordinator-server
+    networks:
+      iceberg_net:
+    environment:
+      - |
+        FLUSS_PROPERTIES=
+        zookeeper.address: zookeeper-fluss:2181
+        bind.listeners: FLUSS://fluss-tablet-server:9123
+        data.dir: /tmp/fluss/data
+        remote.data.dir: /tmp/fluss/remote-data
+        kv.snapshot.interval: 0s
   zookeeper-fluss:
     container_name: zookeeper-fluss
     restart: always
