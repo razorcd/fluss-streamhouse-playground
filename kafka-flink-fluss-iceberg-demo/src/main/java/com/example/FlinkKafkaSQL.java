@@ -14,6 +14,7 @@ public class FlinkKafkaSQL {
 
         final StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
 
+        // Kafka source
         String createTableSql =
                 "CREATE TABLE rawdatastreamTable (\n" +
                         "  event_id STRING,\n" +
@@ -26,13 +27,14 @@ public class FlinkKafkaSQL {
                         "  'topic' = 'rawdatastream',\n" +
                         "  'properties.bootstrap.servers' = 'localhost:9092',\n" + // Replace with your Kafka address
                         "  'properties.group.id' = 'flink-consumer-group3',\n" +
-                        "  'scan.startup.mode' = 'earliest-offset',\n" +
+                        // "  'scan.startup.mode' = 'earliest-offset',\n" +
                         "  'format' = 'json',\n" + // Assuming the Kafka messages are JSON
                         "  'json.ignore-parse-errors' = 'true'\n" +
                         ")";
         tEnv.executeSql(createTableSql).print();
 
     
+        // From Kafka to Fluss
         String fluxxCatalog = 
                 " CREATE CATALOG fluss_catalog \n" +
                 " WITH (\n" +
@@ -43,12 +45,12 @@ public class FlinkKafkaSQL {
 
 
         tEnv.executeSql(fluxxCatalog).print();
-        // tEnv.executeSql("USE CATALOG fluss_catalog").print();
+        tEnv.executeSql("USE CATALOG fluss_catalog").print();
 
-        String dropTableIfExistis = "DROP TABLE IF EXISTS fluss_catalog.fluss.fluss_user;";
-        tEnv.executeSql(dropTableIfExistis).print();
+        // String dropTableIfExistis = "DROP TABLE IF EXISTS fluss_catalog.fluss.fluss_user;";
+        // tEnv.executeSql(dropTableIfExistis).print();
 
-        String createFlussTable = "CREATE TABLE fluss_catalog.fluss.fluss_user (\n" + 
+        String createFlussTable = "CREATE TABLE IF NOT EXISTS fluss_catalog.fluss.fluss_user (\n" + 
                         "  event_id STRING,\n" +
                         "  user_id STRING,\n" +
                         "  event_time TIMESTAMP_LTZ(3)\n" +
@@ -62,7 +64,7 @@ public class FlinkKafkaSQL {
         tEnv.executeSql(insertIntoFluss);
 
 
-//      {"event_id": "event2", "user_id":"1002"}
+//      {"event_id": "event5", "user_id":"1005"}
 //        String selectSql =
 //                "SELECT\n" +
 //                "  event_id,\n" +
@@ -79,9 +81,70 @@ public class FlinkKafkaSQL {
                 ";"
         ;
 
-        Table resultFlussTable = tEnv.sqlQuery(selectFluss);
-        DataStream<Row> resultFlussStream = tEnv.toChangelogStream(resultFlussTable);
-        resultFlussStream.print();
+        tEnv.executeSql(selectFluss);
+
+
+        // From Fluss to Kafka sink
+        tEnv.executeSql("USE CATALOG default_catalog").print();
+
+        String createKafkaTable2Sql =
+                "CREATE TABLE rawdatastreamSinkTable (\n" +
+                        "  event_id STRING,\n" +
+                        "  user_id STRING,\n" +
+                        "  event_time TIMESTAMP_LTZ(3),\n" +
+                        // Define Event Time and Watermark Strategy
+                        "  WATERMARK FOR event_time AS event_time - INTERVAL '5' SECOND\n" +
+                        ") WITH (\n" +
+                        "  'connector' = 'kafka',\n" +
+                        "  'topic' = 'rawdatastream2',\n" +
+                        "  'properties.bootstrap.servers' = 'localhost:9092',\n" + // Replace with your Kafka address
+                        // "  'properties.group.id' = 'flink-consumer-group3',\n" +
+                        // "  'scan.startup.mode' = 'earliest-offset',\n" +
+                        "  'format' = 'json',\n" + // Assuming the Kafka messages are JSON
+                        "  'json.ignore-parse-errors' = 'true'\n" +
+                        ")";
+        tEnv.executeSql(createKafkaTable2Sql).print();
+
+        String insertKafkaSql = 
+                "INSERT INTO rawdatastreamSinkTable\n" +
+                        "SELECT event_id, user_id, event_time\n" +
+                        "FROM fluss_catalog.fluss.fluss_user";
+        tEnv.executeSql(insertKafkaSql);
+
+
+
+        // Queries the output Kafka topic for confirmation.
+        String createTableSqlTestKafka =
+                "CREATE TABLE rawdatastreamTable2 (\n" +
+                        "  event_id STRING,\n" +
+                        "  user_id STRING,\n" +
+                        "  event_time TIMESTAMP_LTZ(3),\n" +
+                        // Define Event Time and Watermark Strategy
+                        "  WATERMARK FOR event_time AS event_time - INTERVAL '5' SECOND\n" +
+                        ") WITH (\n" +
+                        "  'connector' = 'kafka',\n" +
+                        "  'topic' = 'rawdatastream',\n" +
+                        "  'properties.bootstrap.servers' = 'localhost:9092',\n" + // Replace with your Kafka address
+                        "  'properties.group.id' = 'flink-consumer-group-test1',\n" +
+                        "  'scan.startup.mode' = 'earliest-offset',\n" +
+                        "  'format' = 'json',\n" + // Assuming the Kafka messages are JSON
+                        "  'json.ignore-parse-errors' = 'true'\n" +
+                        ")";
+        tEnv.executeSql(createTableSqlTestKafka).print();
+
+        String selectSqlTestKafka =
+                "SELECT\n" +
+                        "  event_id,\n" +
+                        "  user_id,\n" +
+                        "  event_time\n" +
+                        "FROM rawdatastreamTable2;";
+        tEnv.executeSql(selectSqlTestKafka).print();
+
+
+
+        // Table resultFlussTable = tEnv.sqlQuery(selectFluss);
+        // DataStream<Row> resultFlussStream = tEnv.toChangelogStream(resultFlussTable);
+        // resultFlussStream.print();
 
 
         // Print Flink table from Kafka:
@@ -106,6 +169,6 @@ public class FlinkKafkaSQL {
         // resultStream.print();
 
         // Execute the Flink job
-        env.execute("Flink Kafka SQL Job");
+        // tEnv.execute("Flink Kafka SQL Job");
     }
 }
