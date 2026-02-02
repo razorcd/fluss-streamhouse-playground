@@ -127,6 +127,8 @@ public class FlinkKafkaSQL {
                         ")";
         tEnv.executeSql(createKafkaTable2Sql);
 
+
+        // !!!!!!  THIS INSERTS THE WHOLE FLUSS TABLE INTO KAFKA EVERY TIME IT RESTARTS, THEN WAITS FOR MORE UPDATES.
         String insertFromFlussToKafkaSql = 
                 "INSERT INTO rawdatastreamSinkTable\n" +
                         "SELECT event_id, user_id, event_time, CURRENT_TIMESTAMP\n" +
