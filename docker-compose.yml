@@ -82,6 +82,24 @@ services:
     networks:
       iceberg_net:
 
+  akhq:
+    image: tchiotludo/akhq:latest
+    container_name: akhq
+    restart: unless-stopped
+    depends_on:
+      - kafka-broker
+    ports:
+      - 8082:8080
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka-server:
+              properties:
+                bootstrap.servers: "kafka-broker:29092"
+    networks:
+      iceberg_net:
+
   # jobmanager:
   #   image: fluss/quickstart-flink-iceberg:1.20-0.8.0
   #   container_name: jobmanager
