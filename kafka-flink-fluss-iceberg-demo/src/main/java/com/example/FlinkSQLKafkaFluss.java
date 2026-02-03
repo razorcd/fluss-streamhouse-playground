@@ -9,7 +9,9 @@ import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.types.Row;
 
-public class FlinkKafkaSQL {
+import com.alibaba.fluss.flink.source.enumerator.initializer.OffsetsInitializer;
+
+public class FlinkSQLKafkaFluss {
 
     public static void main(String[] args) throws Exception {
 
@@ -67,11 +69,11 @@ public class FlinkKafkaSQL {
                         "  event_id STRING,\n" +
                         "  user_id STRING,\n" +
                         "  event_time TIMESTAMP_LTZ(3),\n" +
-                        "  PRIMARY KEY (`user_id`) NOT ENFORCED,\n" +
+                        // "  PRIMARY KEY (`user_id`) NOT ENFORCED,\n" +   // this add `upsert` capability instead of append-only. (note: Kafka is append-only)
                         "  WATERMARK FOR event_time AS event_time - INTERVAL '5' SECOND\n" +
                         ")\n" +
                         "WITH (\n" +
-                        // "  'scan.startup.mode' = 'latest'\n" +
+                        "  'scan.startup.mode' = 'latest'\n" + // should continue from checkpoint (must test)
                         ");";
         tEnv.executeSql(createFlussTable); 
 
@@ -79,8 +81,7 @@ public class FlinkKafkaSQL {
                 "INSERT INTO fluss_catalog.fluss.fluss_user \n" +
                 "SELECT event_id, user_id, event_time \n" +
                 "FROM default_catalog.default_database.rawdatastreamTable;";
-        tEnv.executeSql(insertIntoFluss);
-
+        // tEnv.executeSql(insertIntoFluss);
 
 //      {"event_id": "event10", "user_id":"1100"}
 //        String selectSql =
@@ -92,14 +93,14 @@ public class FlinkKafkaSQL {
 ////                "WHERE user_id = '1001'"
 //                ;
 
-    //     // Print Flink table from Fluss:
-    //    String selectFluss =
-    //             "SELECT COUNT(*) \n" +
-    //             "FROM fluss_catalog.fluss.fluss_user\n" +
-    //             ";"
-    //     ;
-
-    //     tEnv.executeSql(selectFluss);
+        // Print Flink table from Fluss:
+//        String selectFluss =
+//                 "SELECT * \n" +
+//                 "FROM fluss_catalog.fluss.fluss_user\n" +
+//                 ";"
+//         ;
+//         tEnv.executeSql(selectFluss).print();
+//         env.execute("Flink Kafka to Fluss SQL Job");
 
 
         // From Fluss to Kafka sink
@@ -128,12 +129,16 @@ public class FlinkKafkaSQL {
         tEnv.executeSql(createKafkaTable2Sql);
 
 
-        // !!!!!!  THIS INSERTS THE WHOLE FLUSS TABLE INTO KAFKA EVERY TIME IT RESTARTS, THEN WAITS FOR MORE UPDATES.
         String insertFromFlussToKafkaSql = 
                 "INSERT INTO rawdatastreamSinkTable\n" +
                         "SELECT event_id, user_id, event_time, CURRENT_TIMESTAMP\n" +
                         "FROM fluss_catalog.fluss.fluss_user";
-        tEnv.executeSql(insertFromFlussToKafkaSql);
+        
+        // Create StatementSet to execute both INSERT statements together
+        tEnv.createStatementSet()
+            .addInsertSql(insertFromFlussToKafkaSql)
+            .addInsertSql(insertIntoFluss)
+            .execute();
 
 
         // String selectSqlTestKafka1 =
