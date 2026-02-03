@@ -4,7 +4,7 @@ import org.apache.flink.api.common.serialization.SerializationSchema;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class EventSerializationSchema implements SerializationSchema<Event> {
+public class EventSerializationSchemaKafka implements SerializationSchema<Event> {
     
     private static final ObjectMapper objectMapper = new ObjectMapper();
 

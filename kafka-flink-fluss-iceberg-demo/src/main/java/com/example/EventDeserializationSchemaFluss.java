@@ -7,7 +7,7 @@ import com.alibaba.fluss.record.LogRecord;
 import com.alibaba.fluss.row.InternalRow;
 import com.alibaba.fluss.types.RowType;
 
-public class EventDeserializationSchema implements FlussDeserializationSchema<Event> {
+public class EventDeserializationSchemaFluss implements FlussDeserializationSchema<Event> {
     @Override
     public void open(InitializationContext context) throws Exception {
         // Initialization code if needed

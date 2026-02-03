@@ -119,7 +119,7 @@ public class FlinkDataStreamKafkaFluss {
                 .setProjectedFields("event_id", "user_id")
                 .setStartingOffsets(OffsetsInitializer.latest()) // should continue from checkpoint (must test)
                 .setScanPartitionDiscoveryIntervalMs(1000L)
-                .setDeserializationSchema(new EventDeserializationSchema())
+                .setDeserializationSchema(new EventDeserializationSchemaFluss())
                 .build();
 
         DataStreamSource<Event> stream =
@@ -132,7 +132,7 @@ public class FlinkDataStreamKafkaFluss {
                 .setRecordSerializer(
                         org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema.builder()
                                 .setTopic("rawdatastream3")
-                                .setValueSerializationSchema(new EventSerializationSchema())
+                                .setValueSerializationSchema(new EventSerializationSchemaKafka())
                                 .build()
                 )
                 .build();
