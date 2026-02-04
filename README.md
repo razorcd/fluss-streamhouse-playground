@@ -46,4 +46,11 @@ Kafka -> Flink -> Fluss -> Flink -> Kafka
     - `curl -X DELETE http://localhost:8181/v1/namespaces/fluss/tables/fluss_user8` (deletes the table so it can be recreated)
 - Flink tiering job: http://localhost:8083/#/job/running
 
-
+## Reads
+- https://fluss.apache.org/blog/tiering-service/
+- https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/dev/table/concepts/dynamic_tables/
+- https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/dev/table/sourcessinks/
+- https://fluss.apache.org/docs/0.6/quickstart/flink/
+- https://github.com/luoyuxia/fluss-iceberg/tree/main
+- https://fluss.apache.org/docs/streaming-lakehouse/integrate-data-lakes/iceberg/
+- https://iceberg.apache.org/docs/latest/configuration/#compatibility-flags
