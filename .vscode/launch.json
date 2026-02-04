@@ -1,0 +1,40 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}",
+            "vmArgs": "--add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED"
+        },
+        {
+            "type": "java",
+            "name": "FlinkDataStreamKafkaFluss",
+            "request": "launch",
+            "mainClass": "com.example.FlinkDataStreamKafkaFluss",
+            "projectName": "kafka-flink-fluss-iceberg-demo",
+            "vmArgs": "--add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED"
+        },
+        },
+        {
+            "type": "java",
+            "name": "FlinkSQLAndDataStreamKafkaFluss",
+            "request": "launch",
+            "mainClass": "com.example.FlinkSQLAndDataStreamKafkaFluss",
+            "projectName": "kafka-flink-fluss-iceberg-demo",
+            "vmArgs": "--add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED"
+        },
+        {
+            "type": "java",
+            "name": "FlinkSQLKafkaFluss",
+            "request": "launch",
+            "mainClass": "com.example.FlinkSQLKafkaFluss",
+            "projectName": "kafka-flink-fluss-iceberg-demo",
+            "vmArgs": "--add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED"
+        }
+    ]
+}

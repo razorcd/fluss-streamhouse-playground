@@ -10,6 +10,7 @@ public class Event {
     public Event(String event_id, String user_id) {
         this.event_id = event_id;
         this.user_id = user_id;
+        this.event_time = 0L;
         // this.event_time = event_time;
     }
 

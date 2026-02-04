@@ -14,9 +14,9 @@ public class EventSerializationSchemaKafka implements SerializationSchema<Event>
             ObjectNode json = objectMapper.createObjectNode();
             json.put("event_id", event.event_id);
             json.put("user_id", event.user_id);
-            if (event.event_time != null) {
-                json.put("event_time", event.event_time);
-            }
+            // if (event.event_time != null) {
+            //     json.put("event_time", event.event_time);
+            // }
             return objectMapper.writeValueAsBytes(json);
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize Event to JSON", e);

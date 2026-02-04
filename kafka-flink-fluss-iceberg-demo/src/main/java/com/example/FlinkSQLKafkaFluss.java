@@ -62,8 +62,8 @@ public class FlinkSQLKafkaFluss {
         tEnv.executeSql(fluxxCatalog);
         tEnv.executeSql("USE CATALOG fluss_catalog");
 
-        // String dropTableIfExistis = "DROP TABLE IF EXISTS fluss_catalog.fluss.fluss_user;";
-        // tEnv.executeSql(dropTableIfExistis).print();
+        String dropTableIfExistis = "DROP TABLE IF EXISTS fluss_catalog.fluss.fluss_user;";
+        tEnv.executeSql(dropTableIfExistis).print();
 
         String createFlussTable = "CREATE TABLE IF NOT EXISTS fluss_catalog.fluss.fluss_user (\n" + 
                         "  event_id STRING,\n" +
@@ -107,7 +107,7 @@ public class FlinkSQLKafkaFluss {
         tEnv.executeSql("USE CATALOG default_catalog");
 
         String createKafkaTable2Sql =
-                "CREATE TABLE rawdatastreamSinkTable (\n" +
+                "CREATE TABLE rawdatastream3 (\n" +
                         "  event_id STRING,\n" +
                         "  user_id STRING,\n" +
                         "  event_time TIMESTAMP_LTZ(3),\n" +
@@ -130,7 +130,7 @@ public class FlinkSQLKafkaFluss {
 
 
         String insertFromFlussToKafkaSql = 
-                "INSERT INTO rawdatastreamSinkTable\n" +
+                "INSERT INTO rawdatastream3\n" +
                         "SELECT event_id, user_id, event_time, CURRENT_TIMESTAMP\n" +
                         "FROM fluss_catalog.fluss.fluss_user";
         
