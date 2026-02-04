@@ -1,11 +1,13 @@
-package com.example;
+package com.serdes;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 
-import com.alibaba.fluss.flink.source.deserializer.FlussDeserializationSchema;
-import com.alibaba.fluss.record.LogRecord;
-import com.alibaba.fluss.row.InternalRow;
-import com.alibaba.fluss.types.RowType;
+import org.apache.fluss.flink.source.deserializer.FlussDeserializationSchema;
+import org.apache.fluss.record.LogRecord;
+import org.apache.fluss.row.InternalRow;
+import org.apache.fluss.types.RowType;
+
+import com.example.Event;
 
 public class EventDeserializationSchemaFluss implements FlussDeserializationSchema<Event> {
     @Override

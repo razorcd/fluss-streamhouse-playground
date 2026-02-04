@@ -35,6 +35,14 @@
             "mainClass": "com.example.FlinkSQLKafkaFluss",
             "projectName": "kafka-flink-fluss-iceberg-demo",
             "vmArgs": "--add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED"
+        },
+        {
+            "type": "java",
+            "name": "FlinkDataStreamKafkaFlussAndIceberg",
+            "request": "launch",
+            "mainClass": "com.example.FlinkDataStreamKafkaFlussAndIceberg",
+            "projectName": "kafka-flink-fluss-iceberg-demo",
+            "vmArgs": "--add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED"
         }
     ]
 }

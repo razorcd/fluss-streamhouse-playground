@@ -1,5 +1,12 @@
+x-common-environment: &common-environment
+  AWS_ACCESS_KEY_ID: admin
+  AWS_SECRET_ACCESS_KEY: password
+  AWS_REGION: us-east-1
+
 services:
-  #begin Fluss cluster
+  
+  # Fluss cluster
+  
   fluss-coordinator-server:
     image: apache/fluss:0.8.0-incubating
     container_name: fluss-coordinator-server
@@ -11,10 +18,11 @@ services:
       [
         "sh",
         "-c",
-        "exec /docker-entrypoint.sh coordinatorServer",
+        "cp -v /tmp/lib/*.jar /opt/fluss/plugins/iceberg/ && exec /docker-entrypoint.sh coordinatorServer",
       ]
     depends_on:
       - zookeeper-fluss
+      - rest
     networks:
       iceberg_net:
     environment:
@@ -23,6 +31,13 @@ services:
         zookeeper.address: zookeeper-fluss:2181
         bind.listeners: FLUSS://fluss-coordinator-server:9123
         remote.data.dir: /tmp/fluss/remote-data
+        datalake.format: iceberg
+        datalake.iceberg.type: rest
+        datalake.iceberg.warehouse: s3://warehouse/
+        datalake.iceberg.uri: http://rest:8181
+        datalake.iceberg.io-impl: org.apache.iceberg.aws.s3.S3FileIO
+        datalake.iceberg.s3.endpoint: http://minio:9000
+        datalake.iceberg.s3.path-style-access: true
   fluss-tablet-server:
     image: apache/fluss:0.8.0-incubating
     container_name: fluss-tablet-server
@@ -41,6 +56,70 @@ services:
         data.dir: /tmp/fluss/data
         remote.data.dir: /tmp/fluss/remote-data
         kv.snapshot.interval: 0s
+        datalake.format: iceberg
+        datalake.iceberg.type: rest
+        datalake.iceberg.warehouse: s3://warehouse/
+        datalake.iceberg.uri: http://rest:8181
+        datalake.iceberg.io-impl: org.apache.iceberg.aws.s3.S3FileIO
+        datalake.iceberg.s3.endpoint: http://minio:9000
+        datalake.iceberg.s3.path-style-access: true    
+
+  
+  # Flink Lake Tiering Service for Fluss to Iceberg
+  
+  flink-jobmanager:
+    image: fluss/quickstart-flink-iceberg:1.20-0.8.0
+    container_name: flink-jobmanager
+    ports:
+      - "8083:8081"
+    command: jobmanager
+    networks:
+      iceberg_net:
+    environment:
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password
+      - AWS_REGION=us-east-1
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+  flink-taskmanager:
+    image: fluss/quickstart-flink-iceberg:1.20-0.8.0
+    container_name: flink-taskmanager
+    depends_on:
+      - flink-jobmanager
+    command: taskmanager
+    networks:
+      iceberg_net:
+    environment:
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password
+      - AWS_REGION=us-east-1
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        taskmanager.numberOfTaskSlots: 10
+        taskmanager.memory.process.size: 2048m
+        taskmanager.memory.framework.off-heap.size: 256m
+        
+  flink-tiering:
+    image: fluss/quickstart-flink-iceberg:1.20-0.8.0
+    depends_on:
+      - flink-jobmanager
+      - fluss-coordinator-server
+      - rest
+      - minio
+    networks:
+      iceberg_net:
+    environment:
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password
+      - AWS_REGION=us-east-1
+    entrypoint: |
+      /bin/sh -c "
+      /opt/flink/bin/flink run -D rest.address=flink-jobmanager -D rest.port=8081 /opt/flink/opt/fluss-flink-tiering-0.8-SNAPSHOT.jar --fluss.bootstrap.servers fluss-coordinator-server:9123 --datalake.format iceberg --datalake.iceberg.type rest --datalake.iceberg.warehouse s3://warehouse/ --datalake.iceberg.uri http://rest:8181 --datalake.iceberg.io-impl org.apache.iceberg.aws.s3.S3FileIO --datalake.iceberg.s3.endpoint http://minio:9000 --datalake.iceberg.s3.path-style-access true
+      "
+
+
   zookeeper-fluss:
     container_name: zookeeper-fluss
     restart: always
@@ -48,6 +127,8 @@ services:
     networks:
       iceberg_net:
 
+
+  # Kafka
 
   zookeeper-kafka:
     image: 'confluentinc/cp-zookeeper:7.8.0'
@@ -100,39 +181,62 @@ services:
     networks:
       iceberg_net:
 
-  # jobmanager:
-  #   image: fluss/quickstart-flink-iceberg:1.20-0.8.0
-  #   container_name: jobmanager
-  #   ports:
-  #     - "8083:8081"
-  #   command: jobmanager
-  #   networks:
-  #     iceberg_net:
-  #   environment:
-  #     - AWS_ACCESS_KEY_ID=admin
-  #     - AWS_SECRET_ACCESS_KEY=password
-  #     - AWS_REGION=us-east-1
-  #     - |
-  #       FLINK_PROPERTIES=
-  #       jobmanager.rpc.address: jobmanager
-  # taskmanager:
-  #   image: fluss/quickstart-flink-iceberg:1.20-0.8.0
-  #   container_name: taskmanager
-  #   depends_on:
-  #     - jobmanager
-  #   command: taskmanager
-  #   networks:
-  #     iceberg_net:
-  #   environment:
-  #     - AWS_ACCESS_KEY_ID=admin
-  #     - AWS_SECRET_ACCESS_KEY=password
-  #     - AWS_REGION=us-east-1
-  #     - |
-  #       FLINK_PROPERTIES=
-  #       jobmanager.rpc.address: jobmanager
-  #       taskmanager.numberOfTaskSlots: 10
-  #       taskmanager.memory.process.size: 2048m
-  #       taskmanager.memory.framework.off-heap.size: 256m
+
+  #Iceberg
+
+  rest:
+    image: apache/iceberg-rest-fixture
+    container_name: iceberg-rest
+    networks:
+      iceberg_net:
+    ports:
+      - 8181:8181
+    environment:
+      <<: *common-environment
+      CATALOG_WAREHOUSE: s3://warehouse/
+      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
+      CATALOG_S3_ENDPOINT: http://minio:9000
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+      MINIO_DOMAIN: minio
+    networks:
+      iceberg_net:
+        aliases:
+          - warehouse.minio
+    volumes:
+      - minio_data:/data
+    ports:
+      - 9001:9001
+      - 9000:9000
+    command: ["server", "/data", "--console-address", ":9001"]
+
+  mc:
+    depends_on:
+      - minio
+    image: minio/mc
+    container_name: mc
+    networks:
+      iceberg_net:
+    environment:
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password
+      - AWS_REGION=us-east-1
+    entrypoint: |
+      /bin/sh -c "
+      until (/usr/bin/mc alias set minio http://minio:9000 admin password) do echo '...waiting...' && sleep 1; done;
+      /usr/bin/mc rm -r --force minio/warehouse;
+      /usr/bin/mc mb minio/warehouse;
+      /usr/bin/mc policy set public minio/warehouse;
+      tail -f /dev/null
+      "
 
 networks:
   iceberg_net:
+
+volumes:
+  minio_data:

@@ -1,8 +1,9 @@
-package com.example;
+package com.serdes;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.Event;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.io.IOException;

@@ -9,7 +9,7 @@ import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.types.Row;
 
-import com.alibaba.fluss.flink.source.enumerator.initializer.OffsetsInitializer;
+import org.apache.fluss.flink.source.enumerator.initializer.OffsetsInitializer;
 
 public class FlinkSQLKafkaFluss {
 

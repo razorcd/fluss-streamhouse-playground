@@ -1,4 +1,4 @@
-package com.example;
+package com.example.flinkKafkaFlussIceberg;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
@@ -23,6 +23,7 @@ import org.apache.fluss.flink.sink.serializer.RowDataSerializationSchema;
 import org.apache.fluss.flink.source.FlussSource;
 import org.apache.fluss.flink.source.enumerator.initializer.OffsetsInitializer;
 
+import com.example.Event;
 import com.serdes.EventDeserializationSchemaFluss;
 import com.serdes.EventDeserializationSchemaKafka;
 import com.serdes.EventSerializationSchemaFluss;
@@ -32,7 +33,7 @@ import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 
-public class FlinkDataStreamKafkaFluss {
+public class FlinkDataStreamKafkaFlussAndIceberg {
 
     public static void main(String[] args) throws Exception {
 
@@ -41,39 +42,11 @@ public class FlinkDataStreamKafkaFluss {
         final StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
 
         env.enableCheckpointing(3000);
-        env.getCheckpointConfig().setCheckpointStorage("file:///tmp/flink-checkpoints3");
+        env.getCheckpointConfig().setCheckpointStorage("file:///tmp/flink-checkpoints4");
         env.getCheckpointConfig().setExternalizedCheckpointCleanup(
             CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION
         );
         env.setRestartStrategy(RestartStrategies.noRestart());
-
-    
-        // Fluss table and catalog
-        String flussCatalog = 
-                " CREATE CATALOG fluss_catalog \n" +
-                " WITH (\n" +
-                "  'type' = 'fluss',\n" +
-                // "  'default-database' = 'default',\n" +
-                "  'bootstrap.servers' = 'localhost:9123'\n" +
-                ")";
-
-        tEnv.executeSql(flussCatalog).print();
-        tEnv.executeSql("USE CATALOG fluss_catalog").print();
-
-        // String dropTableIfExistis = "DROP TABLE IF EXISTS fluss_catalog.fluss.fluss_user3;";
-        // tEnv.executeSql(dropTableIfExistis).print();
-
-        String createFlussTable = "CREATE TABLE IF NOT EXISTS fluss_catalog.fluss.fluss_user3 (\n" + 
-                        "  event_id STRING,\n" +
-                        "  user_id STRING,\n" +
-                        "  event_time TIMESTAMP_LTZ(3),\n" +
-                        "  PRIMARY KEY (`user_id`) NOT ENFORCED,\n" +
-                        "  WATERMARK FOR event_time AS event_time - INTERVAL '5' SECOND\n" +
-                        ")\n" +
-                        "WITH (\n" +
-                        // "  'scan.startup.mode' = 'latest'\n" +
-                        ");";
-        tEnv.executeSql(createFlussTable).print(); 
 
 
         // Kafka to Fluss via DataStream API
@@ -91,7 +64,7 @@ public class FlinkDataStreamKafkaFluss {
         FlussSink<Event> flussSink = FlussSink.<Event>builder()
                 .setBootstrapServers("localhost:9123")
                 .setDatabase("fluss")
-                .setTable("fluss_user3")
+                .setTable("fluss_user8")
                 .setSerializationSchema(new EventSerializationSchemaFluss())
                 .build();
 
@@ -102,7 +75,7 @@ public class FlinkDataStreamKafkaFluss {
         FlussSource<Event> flussSource = FlussSource.<Event>builder()
                 .setBootstrapServers("localhost:9123")
                 .setDatabase("fluss")
-                .setTable("fluss_user3")
+                .setTable("fluss_user8")
                 .setProjectedFields("event_id", "user_id")
                 .setStartingOffsets(OffsetsInitializer.latest()) // should continue from checkpoint (must test)
                 .setScanPartitionDiscoveryIntervalMs(1000L)
@@ -126,6 +99,5 @@ public class FlinkDataStreamKafkaFluss {
         // stream.print();
 
         env.execute("Flink DataStream Kafka to Fluss Example");
-
     }
 }

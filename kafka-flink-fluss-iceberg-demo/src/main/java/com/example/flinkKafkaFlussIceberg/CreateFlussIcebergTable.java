@@ -1,4 +1,4 @@
-package com.example;
+package com.example.flinkKafkaFlussIceberg;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
@@ -23,6 +23,7 @@ import org.apache.fluss.flink.sink.serializer.RowDataSerializationSchema;
 import org.apache.fluss.flink.source.FlussSource;
 import org.apache.fluss.flink.source.enumerator.initializer.OffsetsInitializer;
 
+import com.example.Event;
 import com.serdes.EventDeserializationSchemaFluss;
 import com.serdes.EventDeserializationSchemaKafka;
 import com.serdes.EventSerializationSchemaFluss;
@@ -32,7 +33,7 @@ import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 
-public class FlinkDataStreamKafkaFluss {
+public class CreateFlussIcebergTable {
 
     public static void main(String[] args) throws Exception {
 
@@ -41,13 +42,12 @@ public class FlinkDataStreamKafkaFluss {
         final StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
 
         env.enableCheckpointing(3000);
-        env.getCheckpointConfig().setCheckpointStorage("file:///tmp/flink-checkpoints3");
+        env.getCheckpointConfig().setCheckpointStorage("file:///tmp/flink-checkpoints4");
         env.getCheckpointConfig().setExternalizedCheckpointCleanup(
             CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION
         );
         env.setRestartStrategy(RestartStrategies.noRestart());
 
-    
         // Fluss table and catalog
         String flussCatalog = 
                 " CREATE CATALOG fluss_catalog \n" +
@@ -58,12 +58,14 @@ public class FlinkDataStreamKafkaFluss {
                 ")";
 
         tEnv.executeSql(flussCatalog).print();
-        tEnv.executeSql("USE CATALOG fluss_catalog").print();
+        // tEnv.executeSql("USE CATALOG fluss_catalog").print();
 
-        // String dropTableIfExistis = "DROP TABLE IF EXISTS fluss_catalog.fluss.fluss_user3;";
-        // tEnv.executeSql(dropTableIfExistis).print();
 
-        String createFlussTable = "CREATE TABLE IF NOT EXISTS fluss_catalog.fluss.fluss_user3 (\n" + 
+        // // Delete table from Flink:
+        // // String dropTableIfExistis = "DROP TABLE IF EXISTS fluss_catalog.fluss.fluss_user4;";
+        // // tEnv.executeSql(dropTableIfExistis).print();
+
+        String createFlussTable = "CREATE TABLE IF NOT EXISTS fluss_catalog.fluss.fluss_user8 (\n" + 
                         "  event_id STRING,\n" +
                         "  user_id STRING,\n" +
                         "  event_time TIMESTAMP_LTZ(3),\n" +
@@ -71,61 +73,25 @@ public class FlinkDataStreamKafkaFluss {
                         "  WATERMARK FOR event_time AS event_time - INTERVAL '5' SECOND\n" +
                         ")\n" +
                         "WITH (\n" +
-                        // "  'scan.startup.mode' = 'latest'\n" +
+                                // "  'scan.startup.mode' = 'latest'\n" +
+                                "  'table.datalake.enabled' = 'true',\n" +
+                                "  'table.datalake.freshness' = '5s',\n" +    
+                                "  'iceberg.catalog-impl' = 'org.apache.iceberg.rest.RESTCatalog',\n" +
+                                "  'iceberg.uri' = 'http://rest:8181',\n" +
+                                "  'iceberg.warehouse' = 's3://warehouse/',\n" +
+                                "  'iceberg.io-impl' = 'org.apache.iceberg.aws.s3.S3FileIO',\n" +
+                                "  'iceberg.s3.endpoint' = 'http://minio:9000',\n" +
+                                "  'iceberg.s3.path-style-access' = 'true',\n" +
+                                "  'iceberg.client.region' = 'us-east-1',\n" +
+                                "  'iceberg.s3.access-key-id' = 'admin',\n" +
+                                "  'iceberg.s3.secret-access-key' = 'password'\n" +
                         ");";
         tEnv.executeSql(createFlussTable).print(); 
 
+        //confirm existance of catalog: http://localhost:8181/v1/namespaces/fluss/tables
+        //confirm existance of Iceberg table folder on disk: http://localhost:9001/browser/warehouse/fluss%2F
 
-        // Kafka to Fluss via DataStream API
-        KafkaSource<Event> kafkaSource = KafkaSource.<Event>builder()
-                .setBootstrapServers("localhost:9092")
-                .setTopics("rawdatastream")
-                .setGroupId("flink-consumer-group4")
-                .setStartingOffsets(org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer.latest())
-                .setValueOnlyDeserializer(new EventDeserializationSchemaKafka())
-                .build();
-
-        DataStreamSource<Event> kafkaStream = env.fromSource(kafkaSource, WatermarkStrategy.forMonotonousTimestamps(), "Kafka Source");
-        // kafkaStream.print();
-
-        FlussSink<Event> flussSink = FlussSink.<Event>builder()
-                .setBootstrapServers("localhost:9123")
-                .setDatabase("fluss")
-                .setTable("fluss_user3")
-                .setSerializationSchema(new EventSerializationSchemaFluss())
-                .build();
-
-        kafkaStream.sinkTo(flussSink).name("Fluss Sink");
-
-
-        // Fluss to Kafka via DataStream API
-        FlussSource<Event> flussSource = FlussSource.<Event>builder()
-                .setBootstrapServers("localhost:9123")
-                .setDatabase("fluss")
-                .setTable("fluss_user3")
-                .setProjectedFields("event_id", "user_id")
-                .setStartingOffsets(OffsetsInitializer.latest()) // should continue from checkpoint (must test)
-                .setScanPartitionDiscoveryIntervalMs(1000L)
-                .setDeserializationSchema(new EventDeserializationSchemaFluss())
-                .build();
-
-        DataStreamSource<Event> stream = env.fromSource(flussSource, WatermarkStrategy.forMonotonousTimestamps(), "Fluss Orders Source");
-        // stream.print();
-
-        KafkaSink<Event> kafkaSink = KafkaSink.<Event>builder()
-                .setBootstrapServers("localhost:9092")
-                .setRecordSerializer(
-                        org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema.builder()
-                                .setTopic("rawdatastream3")
-                                .setValueSerializationSchema(new EventSerializationSchemaKafka())
-                                .build()
-                )
-                .build();
-
-        stream.sinkTo(kafkaSink).name("Kafka Sink");
-        // stream.print();
-
-        env.execute("Flink DataStream Kafka to Fluss Example");
-
+        
+        tEnv.executeSql("SHOW CREATE TABLE fluss_catalog.fluss.fluss_user8").print();
     }
 }

@@ -18,10 +18,13 @@ import org.apache.flink.table.types.logical.TimestampType;
 import org.apache.flink.table.types.logical.VarCharType;
 import org.apache.flink.types.Row;
 
-import com.alibaba.fluss.flink.sink.FlussSink;
-import com.alibaba.fluss.flink.sink.serializer.RowDataSerializationSchema;
-import com.alibaba.fluss.flink.source.FlussSource;
-import com.alibaba.fluss.flink.source.enumerator.initializer.OffsetsInitializer;
+import org.apache.fluss.flink.sink.FlussSink;
+import org.apache.fluss.flink.sink.serializer.RowDataSerializationSchema;
+import org.apache.fluss.flink.source.FlussSource;
+import org.apache.fluss.flink.source.enumerator.initializer.OffsetsInitializer;
+
+import com.serdes.EventDeserializationSchemaFluss;
+import com.serdes.EventSerializationSchemaKafka;
 
 import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.connector.kafka.sink.KafkaSink;

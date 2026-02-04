@@ -1,11 +1,13 @@
-package com.example;
+package com.serdes;
 
-import com.alibaba.fluss.flink.row.OperationType;
-import com.alibaba.fluss.flink.row.RowWithOp;
-import com.alibaba.fluss.flink.sink.serializer.FlussSerializationSchema;
-import com.alibaba.fluss.row.BinaryString;
-import com.alibaba.fluss.row.GenericRow;
-import com.alibaba.fluss.row.TimestampLtz;
+import org.apache.fluss.flink.row.OperationType;
+import org.apache.fluss.flink.row.RowWithOp;
+import org.apache.fluss.flink.sink.serializer.FlussSerializationSchema;
+import org.apache.fluss.row.BinaryString;
+import org.apache.fluss.row.GenericRow;
+import org.apache.fluss.row.TimestampLtz;
+
+import com.example.Event;
 
 public class EventSerializationSchemaFluss implements FlussSerializationSchema<Event> {
     
